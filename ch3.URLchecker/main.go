@@ -1,13 +1,52 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+)
+
+type requestResult struct {
+	url    string
+	status string
+}
+
+var errRequestFailed = errors.New("Request failed")
 
 func main() {
+	results := make(map[string]string)
+	c := make(chan requestResult)
 	urls := []string{
-		"https://www.youtube.com/watch?v=iweGVkM9b_g",
-		"https://www.youtube.com/watch?v=uvdC5FooVEU",
+		"https://www.airbnb.com/",
+		"https://www.google.com/",
+		"https://www.amazon.com/",
+		"https://www.reddit.com/",
+		"https://www.google.com/",
+		"https://soundcloud.com/",
+		"https://www.facebook.com/",
+		"https://www.instagram.com/",
+		"https://academy.nomadcoders.co/",
 	}
 	for _, url := range urls {
-		fmt.Println(url)
+		go hitURL(url, c)
 	}
+
+	for i := 0; i < len(urls); i++ {
+		result := <-c
+		results[result.url] = result.status
+	}
+	for url, status := range results {
+		fmt.Println(url, status)
+	}
+}
+
+func hitURL(url string, c chan<- requestResult) error {
+	fmt.Println("Checking:", url)
+	resp, err := http.Get(url)
+	status := "OK"
+	if err != nil || resp.StatusCode >= 400 {
+		status = "FAILED"
+	}
+	c <- requestResult{url: url, status: status}
+	return nil
 }
